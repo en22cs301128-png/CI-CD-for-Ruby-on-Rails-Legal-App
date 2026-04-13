@@ -41,4 +41,26 @@ The system is designed to ensure **reliability, scalability, and zero manual int
 
 ---
 
-## 📁 Project Structure
+## Related Repository
+
+AI Application → https://github.com/en22cs301128-png/CI-CD-for-Ruby-on-Rails-Legal-App
+
+
+
+---
+
+## Group Members
+
+| Sr No | Name | Enrollment Number |
+|---|---|---|
+| 01 | Animesh Parashar | EN22CS301128 |
+| 02 | Anirudh Singh Rathore | EN22CS301130 |
+| 03 | Anshika Parsai |EN22CS301151 |
+| 04 | Anshul Goyal | EN22CS301157 |
+| 05 | Anushka Mukati | EN22CS301181 |
+
+---
+
+- **Institution**- Medicaps University, Datagami Skill Based Course
+- **Academic Year**- 2025-2026
+- **Industry Mentor**- Prof. Akshay Saxena
