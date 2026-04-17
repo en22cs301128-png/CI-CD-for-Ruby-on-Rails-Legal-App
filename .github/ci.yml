@@ -23,8 +23,7 @@ jobs:
           --health-retries=5
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
@@ -32,15 +31,11 @@ jobs:
         ruby-version: 3.4
         bundler-cache: true
 
-    - name: Install dependencies
+    - name: Install gems
       run: bundle install
 
-    - name: Setup database
-      env:
-        RAILS_ENV: test
+    - name: Setup DB
       run: |
-        cp config/database.yml config/database.yml.bak
-        sed -i 's/host: .*/host: localhost/' config/database.yml
         bundle exec rails db:create
         bundle exec rails db:migrate
 
