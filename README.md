@@ -70,7 +70,7 @@ The system is designed to ensure **reliability, scalability, and zero manual int
 ## Related Repository
 
 AI Application → https://github.com/en22cs301128-png/CI-CD-for-Ruby-on-Rails-Legal-App
-
+CI Trigger Test
 
 
 ---
