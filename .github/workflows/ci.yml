@@ -1,0 +1,105 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, production ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
+          bundler-cache: true
+
+      - name: Create database
+        run: |
+          bundle exec rails db:create
+          bundle exec rails db:migrate
+        env:
+          RAILS_ENV: test
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: password
+
+      - name: Run Tests
+        run: bundle exec rspec
+        env:
+          RAILS_ENV: test
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: password
+
+  build-and-push:
+    needs: test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/devops:latest
+            ghcr.io/${{ github.repository }}/devops:${{ github.sha }}
+
+  deploy-to-eks:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      - name: Replace image tags and apply Kubernetes manifests
+        run: |
+          # Replace placeholders in deployment.yaml
+          sed -i "s/YOUR_GITHUB_USERNAME/${{ github.repository_owner }}/g" k8s/deployment.yaml
+          sed -i "s/IMAGE_TAG/${{ github.sha }}/g" k8s/deployment.yaml
+          
+          # Apply all manifests
+          kubectl apply -f k8s/
+          
+          # Force rollout restart to ensure new pods are spawned
+          kubectl rollout restart deployment devops
